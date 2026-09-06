@@ -109,8 +109,9 @@ class ScalarTrain:
 
 
 if __name__ == "__main__":
-    PTS = 50
+    PTS = 100
+    DATASET = minitorch.datasets["Diag"](PTS)
     HIDDEN = 2
-    RATE = 0.5
-    data = minitorch.datasets["Simple"](PTS)
-    ScalarTrain(HIDDEN).train(data, RATE)
+    RATE = 0.3
+
+    ScalarTrain(HIDDEN).train(DATASET, RATE)
