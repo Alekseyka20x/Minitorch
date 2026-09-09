@@ -4,6 +4,7 @@ Be sure you have minitorch installed in you Virtual Env.
 """
 
 import minitorch
+import time
 
 
 def RParam(*shape):
@@ -48,6 +49,9 @@ class Linear(minitorch.Module):
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
 
+def my_log_fn_with_time(epoch, total_loss, correct, losses, epoch_time):
+    print("Epoch ", epoch, " loss ", total_loss, "correct", correct, f" time {epoch_time:.3f}s/epoch")
+
 
 class TensorTrain:
     def __init__(self, hidden_layers):
@@ -60,7 +64,7 @@ class TensorTrain:
     def run_many(self, X):
         return self.model.forward(minitorch.tensor(X))
 
-    def train(self, data, learning_rate, max_epochs=500, log_fn=default_log_fn):
+    def train(self, data, learning_rate, max_epochs=500, log_fn=my_log_fn_with_time):
 
         self.learning_rate = learning_rate
         self.max_epochs = max_epochs
@@ -71,7 +75,12 @@ class TensorTrain:
         y = minitorch.tensor(data.y)
 
         losses = []
+        total_time = 0.0
+        last_batch_time = 0.0
+
         for epoch in range(1, self.max_epochs + 1):
+            epoch_st_time = time.time()
+
             total_loss = 0.0
             correct = 0
             optim.zero_grad()
@@ -87,17 +96,23 @@ class TensorTrain:
 
             # Update
             optim.step()
+            epoch_time = time.time() - epoch_st_time
+            total_time += epoch_time
+            last_batch_time += epoch_time
 
             # Logging
             if epoch % 10 == 0 or epoch == max_epochs:
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
-                log_fn(epoch, total_loss, correct, losses)
+                my_log_fn_with_time(epoch, total_loss, correct, losses, last_batch_time / 10)
+                last_batch_time = 0.0
+
+        print(f"Done. Avg time: {total_time / max_epochs:.3f}s/epoch")
 
 
 if __name__ == "__main__":
-    PTS = 50
-    HIDDEN = 2
-    RATE = 0.5
-    data = minitorch.datasets["Simple"](PTS)
+    PTS = 100
+    HIDDEN = 10
+    RATE = 0.4
+    data = minitorch.datasets["Spiral"](PTS)
     TensorTrain(HIDDEN).train(data, RATE)
