@@ -1,6 +1,7 @@
 import random
 
 import numba
+import time
 
 import minitorch
 
@@ -12,6 +13,9 @@ if numba.cuda.is_available():
 
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
+
+def my_log_fn_with_time(epoch, total_loss, correct, losses, epoch_time):
+    print("Epoch ", epoch, " loss ", total_loss, "correct", correct, f" time {epoch_time:.3f}s/epoch")
 
 
 def RParam(*shape, backend):
@@ -64,14 +68,19 @@ class FastTrain:
     def run_many(self, X):
         return self.model.forward(minitorch.tensor(X, backend=self.backend))
 
-    def train(self, data, learning_rate, max_epochs=500, log_fn=default_log_fn):
+    def train(self, data, learning_rate, max_epochs=500, log_fn=my_log_fn_with_time):
 
         self.model = Network(self.hidden_layers, self.backend)
         optim = minitorch.SGD(self.model.parameters(), learning_rate)
         BATCH = 10
         losses = []
 
+        total_time = 0.0
+        last_batch_time = 0.0
+
         for epoch in range(max_epochs):
+            epoch_st_time = time.time()
+
             total_loss = 0.0
             c = list(zip(data.X, data.y))
             random.shuffle(c)
@@ -93,6 +102,11 @@ class FastTrain:
                 # Update
                 optim.step()
 
+            epoch_time = time.time() - epoch_st_time
+            if epoch != 0:
+                total_time += epoch_time
+            last_batch_time += epoch_time
+
             losses.append(total_loss)
             # Logging
             if epoch % 10 == 0 or epoch == max_epochs:
@@ -101,7 +115,10 @@ class FastTrain:
                 out = self.model.forward(X).view(y.shape[0])
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
-                log_fn(epoch, total_loss, correct, losses)
+                log_fn(epoch, total_loss, correct, losses, last_batch_time / 10)
+                last_batch_time = 0.0
+
+        print(f"Done. Avg time: {total_time / (max_epochs - 1):.3f}s/epoch")
 
 
 if __name__ == "__main__":
