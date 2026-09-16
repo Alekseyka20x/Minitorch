@@ -78,7 +78,7 @@ class FastTrain:
         total_time = 0.0
         last_batch_time = 0.0
 
-        for epoch in range(max_epochs):
+        for epoch in range(1, max_epochs + 1):
             epoch_st_time = time.time()
 
             total_loss = 0.0
@@ -103,7 +103,7 @@ class FastTrain:
                 optim.step()
 
             epoch_time = time.time() - epoch_st_time
-            if epoch != 0:
+            if epoch != 1:
                 total_time += epoch_time
             last_batch_time += epoch_time
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     if args.DATASET == "xor":
         data = minitorch.datasets["Xor"](PTS)
     elif args.DATASET == "simple":
-        data = minitorch.datasets["Simple"].simple(PTS)
+        data = minitorch.datasets["Simple"](PTS)
     elif args.DATASET == "split":
         data = minitorch.datasets["Split"](PTS)
 
